@@ -44,6 +44,10 @@ print?.call(<Foo>{ bar: 5 })
 const OBJECT_LITERAL_RETURN = `
 return {} as Foo
 `;
+const OBJECT_LITERAL_MULTIPLE_OPTIONS = `
+print({ bar: 5 } as Foo)
+return {} as Foo
+`;
 
 ruleTester.run('consistent-type-assertions', rule, {
   valid: [
@@ -97,8 +101,19 @@ ruleTester.run('consistent-type-assertions', rule, {
       options: [
         {
           assertionStyle: 'as',
-          objectLiteralTypeAssertions: 'never',
-          allowAsReturn: true,
+          objectLiteralTypeAssertions: 'allow-as-return',
+        },
+      ],
+    }),
+    ...batchedSingleLineTests({
+      code: OBJECT_LITERAL_MULTIPLE_OPTIONS,
+      options: [
+        {
+          assertionStyle: 'as',
+          objectLiteralTypeAssertions: [
+            'allow-as-parameter',
+            'allow-as-return',
+          ],
         },
       ],
     }),

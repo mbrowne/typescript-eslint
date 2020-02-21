@@ -14,13 +14,17 @@ type MessageIds =
 type OptUnion =
   | {
       assertionStyle: 'as' | 'angle-bracket';
-      objectLiteralTypeAssertions?: 'allow' | 'allow-as-parameter' | 'never';
-      allowAsReturn?: boolean;
+      objectLiteralTypeAssertions?:
+        | 'allow'
+        | 'allow-as-parameter'
+        | 'allow-as-return'
+        | 'never'
+        | ('allow-as-parameter' | 'allow-as-return')[];
     }
   | {
       assertionStyle: 'never';
-      allowAsReturn?: boolean;
     };
+
 type Options = [OptUnion];
 
 export default util.createRule<Options, MessageIds>({
@@ -59,7 +63,25 @@ export default util.createRule<Options, MessageIds>({
                 enum: ['as', 'angle-bracket'],
               },
               objectLiteralTypeAssertions: {
-                enum: ['allow', 'allow-as-parameter', 'never'],
+                oneOf: [
+                  {
+                    type: {
+                      enum: [
+                        'allow',
+                        'allow-as-parameter',
+                        'allow-as-return',
+                        'never',
+                      ],
+                    },
+                  },
+                  {
+                    type: 'array',
+                    items: {
+                      type: 'string',
+                      enum: ['allow-as-parameter', 'allow-as-return'],
+                    },
+                  },
+                ],
               },
               allowAsReturn: { type: 'boolean' },
             },
@@ -74,7 +96,6 @@ export default util.createRule<Options, MessageIds>({
     {
       assertionStyle: 'as',
       objectLiteralTypeAssertions: 'allow',
-      allowAsReturn: false,
     },
   ],
   create(context, [options]) {
@@ -124,8 +145,14 @@ export default util.createRule<Options, MessageIds>({
         return;
       }
 
+      const objectLiteralTypeAssertions = Array.isArray(
+        options.objectLiteralTypeAssertions,
+      )
+        ? options.objectLiteralTypeAssertions
+        : [options.objectLiteralTypeAssertions];
+
       if (
-        options.objectLiteralTypeAssertions === 'allow-as-parameter' &&
+        objectLiteralTypeAssertions.includes('allow-as-parameter') &&
         node.parent &&
         (node.parent.type === AST_NODE_TYPES.NewExpression ||
           node.parent.type === AST_NODE_TYPES.CallExpression ||
@@ -137,7 +164,7 @@ export default util.createRule<Options, MessageIds>({
       }
 
       if (
-        options.allowAsReturn &&
+        objectLiteralTypeAssertions.includes('allow-as-return') &&
         node.parent &&
         node.parent.type === AST_NODE_TYPES.ReturnStatement
       ) {
